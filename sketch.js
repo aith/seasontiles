@@ -17,7 +17,7 @@ const lookup = [
     [1,1],
     [1,1],
     [1,1],
-    [1,1],
+    [2,2],
     [1,1],
     [1,1],
     [1,1],
@@ -60,7 +60,10 @@ function generateGrid(numCols, numRows) {
     for (let i = 0; i < numRows; i++) {
         let row = [];
         for (let j = 0; j < numCols; j++) {
-            row.push("_");
+
+            if (i == 0 && j == 0) row.push(":"); // temp
+            else // temp
+                row.push("_");
         }
         grid.push(row);
     }
@@ -81,23 +84,30 @@ function drawGrid(grid) {
 
 function drawByKey(grid, i, j, target, ti, tj) {
     switch(target) {
-        case '_':
+        case '_': // dirt
             drawContext(grid, i, j, grid[i][j], 0, 0); break;
+        case ':':
+            drawContext(grid, i, j, grid[i][j], 0, 3); break;
+        default:
     }
 }
 
 function drawContext(grid, i, j, target, ti, tj) {
     let code = gridCode(grid, i, j, target);
     const [tiOffset, tjOffset] = lookup[code];
-    placeTile(i, j, ti + tiOffset, tj + tjOffset);
+    placeTile(i, j, ti + tiOffset - 1, tj + tjOffset - 1);  // temp sub 1 so grass is at 0 0
+    handleCorners(code, target);
+}
+
+function handleCorners(code, target) {
 }
 
 function gridCode(grid, i, j, target) {
     // i believe target is the tile image to be endoced
     let northBit = gridCheck(grid, i, j-1, target);
     let southBit = gridCheck(grid, i, j+1, target);
-    let eastBit =  gridCheck(grid, i-1, j, target);
-    let westBit =  gridCheck(grid, i+1, j, target);
+    let eastBit =  gridCheck(grid, i+1, j, target);
+    let westBit =  gridCheck(grid, i-1, j, target);
     // iot create a bit-array, use LSR
     let code = (northBit<<0)+(southBit<<1)+(eastBit<<2)+(westBit<<3);  
     // print(code);
@@ -106,7 +116,6 @@ function gridCode(grid, i, j, target) {
 
 function gridCheck(grid, i, j, target) {
     if (i < 0 || j < 0 || i > numRows-1 || j > numCols-1) return true;
-    // if (grid[i][j] == null) return false;
     return grid[i][j] == target ? true : false;
 }
 
