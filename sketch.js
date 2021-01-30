@@ -9,6 +9,7 @@ let numRows, numCols;
 
 let grassKey = ':',
     dirtKey = '_'
+    len = 2;
 
 // bit order:
 // WESN
@@ -20,45 +21,44 @@ let grassKey = ':',
 let lookupDict = {}
 
 const gO = 0;
+const dO = 3;
 const grassTileSet = [
-  [-4, gO], // same as ":" nowhere around this tile
-  [-4, gO], // same just north
-  [-4, gO], // same just south
+  [-3, -3], // same as ":" nowhere around this tile
+  [1, gO], // same just north
+  [1, gO+2], // same just south
   [1, gO], // N + S
-  [-4, gO], // E
-  [0, gO+2], // N + E
-  [0, gO], // S + E
-  [0, gO+1], // - W
-  [-4, gO], // W
-  [2, gO+2], // N + W
-  [2, gO], // S + W
-  [2, gO+1], // - E
+  [2, gO+1], // E
+  [2, gO], // N + E
+  [2, gO+2], // S + E
+  [-4, gO], // - W
+  [0, gO+1], // W
+  [0, gO], // N + W
+  [0, gO+2], // S + W
+  [-4, gO], // - E
   [1, gO+1], // W + E
-  [1, gO+2], // - S
-  [1, gO], // - N
-  [1, gO+1], // all
+  [-4, gO], // - S
+  [-4, gO], // - N
+  [-4, gO], // all
 ];
 
-const dO = 3;
 const dirtTileSet = [
-  [-4, dO], // same as ":" nowhere around this tile
-  [-4, dO], // N
+  [-3, -3], // same as ":" nowhere around this tile
+  [-8, dO], // N
   [-4, dO], // S
   [1, dO], // N + S
   [-4, dO], // E
-  [0, dO+2], // N + E
-  [0, dO], // S + E
-  [0, dO], // - W
+  [-4, dO], // N + E
+  [-4, dO], // S + E
+  [-4, dO], // - W
   [-4, dO], // W
-  [2, dO], // N + W
   [-4, dO], // S + W
-  [2, dO], // - E
-  [1, dO], // W + E
-  [1, dO], // - S
-  [1, dO], // - N
-  [5, dO], // all
+  [-4, dO], //  + W
+  [-4, dO], // - E
+  [1, dO+1], // W + E
+  [-4, dO], // - S
+  [-4, dO], // - N
+  [-4, dO], // all
 ];
-
 
 function preload() {
   tilesetImage = loadImage("./tileset.png");
@@ -72,9 +72,9 @@ function setup() {
   select("canvas").elt.getContext("2d").imageSmoothingEnabled = false;
   select("#reseedButton").mousePressed(reseed);
   select("#asciiBox").input(reparseGrid); // iot run reparseGrid as a callback to asciiBox's input being changed
-  reseed();
   generateLookupDict();
-  generateGrid();
+  reseed();
+  // generateGrid();
 }
 
 function draw() {
@@ -84,16 +84,30 @@ function draw() {
 
 function generateLookupDict() {
   lookupDict[grassKey] = grassTileSet;
-  lookupDict[dirtKey] = dirtTileSet;
+  lookupDict[dirtKey] = dirtTileSet; 
 }
 
 function generateGrid(numCols, numRows) {
   let grid = [];
+  let keys = Object.keys(lookupDict);
   for (let i = 0; i < numRows; i++) {
     let row = [];
     for (let j = 0; j < numCols; j++) {
-      if (i > 4 && j > 4 && i < 10 && j < 10) row.push(":");
-      else row.push("_");
+      if (i > 4 && j > 4 && i < 10 && j < 10) row.push("_");
+      else if (i > 2 && j > 9 && i < 5 && j < 12) row.push("_");
+      else row.push(":");
+      // if (i & 1) {
+      //   print("even row foudn")
+      //   row = grid[i-1];
+      //   break;
+      // }
+      // else {
+      //   if (j & 1) row.push(row[j-1]);
+      //   else {
+      //     let val = keys[Math.floor(keys.length * random())];
+      //     row.push([val]);
+      //   }
+      // }
     }
     grid.push(row);
   }
@@ -106,10 +120,10 @@ function drawGrid(grid) {
     for (let j = 0; j < grid[i].length; j++) {
       drawContext(grid, i, j, dirtKey, 4, 0);
       drawContext(grid, i, j, grassKey, 4, 0);
+      drawContext(grid, i, j, grid[i][j], 4, 0);
     }
   }
 }
-
 
 function drawContext(grid, i, j, target, ti, tj, key) {
   let code = gridCode(grid, i, j, target);
