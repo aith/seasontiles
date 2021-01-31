@@ -11,6 +11,18 @@ let gKey = ':',
     dKey = '_'
     len = 2;
 
+let lookupDict = {}
+
+const seasons = 4;
+let season = 0;
+let seasonRate = 1500;
+const gOSeasons = [6, 12, 18, 0]; // F W Su Sp
+const dOSeasons = [0, 13, 1,  3]
+let gO = gOSeasons[0];
+let dO = dOSeasons[0];
+let inc = 0.01;
+
+// lookup arrays
 // bit order:
 // WESN
 // 0001 ie refers to northern tile being same
@@ -18,48 +30,13 @@ let gKey = ':',
 // lookup: describes the tile image offset for the given bit combination -> array index.
 //   You can think of the lookup table as a mapping function
 //
-let lookupDict = {}
+let g;
+let d2g;
+let noiseArr = [];
 
-const gO = 0;
-const dO = 3;
+let currentFrame = 0;
+let lastFrame = 0;
 
-const g = [
-  [-3, -3], // same as ":" nowhere around this tile
-  [0, gO], // same just north
-  [0, gO], // same just south
-  [0, gO], // N + S
-  [0, gO], // E
-  [0, gO], // N + E
-  [0, gO], // S + E
-  [0, gO], // - W
-  [0, gO], // W
-  [0, gO], // N + W
-  [0, gO], // S + W
-  [0, gO], // - E
-  [0, gO], // W + E
-  [0, gO], // - S
-  [0, gO], // - N
-  [0, gO], // all
-];
-
-const d2g = [
-  [4, gO+2], // same as ":" nowhere around this tile
-  [4, gO+2], // N
-  [6, gO], // S
-  [4, gO+1], // N + S *
-  [4, gO+2], // E *
-  [4, gO+2], // N + E
-  [4, gO], // S + E
-  [4, gO+1], // - W
-  [6, gO+2], // W *
-  [6, gO+2], // N + W
-  [6, gO], // S + W
-  [6, gO+1], // - E
-  [5, gO+1], // W + E
-  [5, gO+2], // - S
-  [5, gO], // - N
-  [0, dO], // all
-];
 
 function preload() {
   tilesetImage = loadImage("./tileset.png");
@@ -79,31 +56,112 @@ function setup() {
 }
 
 function draw() {
+  updateSeason();
   randomSeed(seed);
   drawGrid(currentGrid);
 }
 
+function updateSeason() {
+  currentFrame += millis() - lastFrame;
+  // print(currentFrame)
+  if(currentFrame > seasonRate){
+    currentFrame = 0;
+    season++;
+    season %= seasons;
+    gO = gOSeasons[season];
+    dO = dOSeasons[season];
+    generateLookupDict();
+    print("updated")
+  }
+  lastFrame = millis();
+}
+
 function generateLookupDict() {
+  generateLookupArrays();
   lookupDict[gKey] = g;
   lookupDict[dKey] = d2g; 
 }
 
+function generateLookupArrays() {
+  g = [
+    [-3, -3], // same as ":" nowhere around this tile
+    [-3, gO], // same just north
+    [-3, gO], // same just south
+    [-3, gO], // N + S
+    [-3, gO], // E
+    [-3, gO], // N + E
+    [-3, gO], // S + E
+    [-3, gO], // - W
+    [-3, gO], // W
+    [-3, gO], // N + W
+    [-3, gO], // S + W
+    [-3, gO], // - E
+    [-3, gO], // W + E
+    [-3, gO], // - S
+    [-3, gO], // - N
+    [0, gO], // all
+  ];
+
+  d2g = [
+    [4, gO+2], // same as ":" nowhere around this tile
+    [4, gO+2], // N
+    [6, gO], // S
+    [4, gO+1], // N + S *
+    [4, gO+2], // E *
+    [4, gO+2], // N + E
+    [4, gO], // S + E
+    [4, gO+1], // - W
+    [6, gO+2], // W *
+    [6, gO+2], // N + W
+    [6, gO], // S + W
+    [6, gO+1], // - E
+    [5, gO], // W + E
+    [5, gO+2], // - S
+    [5, gO], // - N
+    [0, dO], // all
+  ];
+}
+
+// function generateNoise(numCols, numRows) {
+//   // https://youtu.be/ikwNrFvnL3g
+//   noiseArr = [];
+//   let rowOff = 0;
+//   let colOff = 0;
+//   for (let i = 0; i < numRows; i++) {
+//     let row = [];
+//     for (let j = 0; j < numCols; j++) {
+//       row.push(noise(rowOff, colOff) * 2);
+//       colOff += inc;
+//     }
+//     rowOff += inc;
+//     noiseArr.push(row);
+//   }
+//   return noiseArr;
+// }
+
 function generateGrid(numCols, numRows) {
-  let xOff = -0.01;
-  let rate = 0.05;
   let grid = [];
+  let keys = Object.keys(lookupDict)
   // let keys = Object.keys(lookupDict);
   for (let i = 0; i < numRows; i++) {
     let row = [];
     for (let j = 0; j < numCols; j++) {
-      // if (i > 4 && j > 4 && i < 10 && j < 10) row.push("_");
-      // else if (i > 2 && j > 9 && i < 5 && j < 12) row.push("_");
-      // else row.push(":");
-      // 
-      let index = (noise(xOff) * len) | 0;
-      xOff += rate;
-      // print(Object.keys(lookupDict)[index]);
-      row.push(Object.keys(lookupDict)[index]);
+
+      // build from noiseArr
+      let index = floor(noiseArr[i][j]);
+      row.push(keys[index]);
+
+      // if (i & 1) {
+      //   row = grid[i-1];
+      //   break;
+      // }
+      // else {
+      //   if (j & 1) row.push(row[j-1]);
+      //   else {
+      //     let val = keys[Math.floor(keys.length * random())];
+      //     row.push([val]);
+      //   }
+      // }
     }
     grid.push(row);
   }
@@ -114,25 +172,42 @@ function drawGrid(grid) {
   background(128);
   for (let i = 0; i < grid.length; i++) {
     for (let j = 0; j < grid[i].length; j++) {
-      // so lets place normal square tiles by key, then do drawcontext for corners
-      // drawContext(grid, i, j, grid[i][j], 0, 0);
-      // place full tiles
+      
+      // Growth rate stuff 
       let target = grid[i][j];
-      drawWithoutCorners(grid, i, j, target);
+      let limit = random(4);
+      let rand = (random(0, limit));
+      rand = floor(rand * rand / rand);
+
+      let offset = rand;
+      drawWithoutCorners(grid, i, j, target, offset);
       drawContext(grid, i, j, target, 0, 0);
     }
   }
 }
 
-function drawWithoutCorners(grid, i, j, target) {
-    const [tiOffset, tjOffset] = lookupDict[target][15];
-    placeTile(i, j, tiOffset, tjOffset); // temp sub 1 so grass is at 0 0
+
+function drawWithoutCorners(grid, i, j, target, offset) {
+    let tiOffset, tjOffset;
+
+    // check if key is in array
+    if (Object.keys(lookupDict).includes(target)) {
+      [tiOffset, tjOffset] = lookupDict[target][15];
+    } else [tiOffset, tjOffset] = lookupDict[gKey][0];
+  
+    placeTile(i, j, tiOffset + offset, tjOffset); // temp sub 1 so grass is at 0 0
 } 
 
 
 function drawContext(grid, i, j, target, ti, tj) {
   let code = gridCode(grid, i, j, target);
-  const [tiOffset, tjOffset] = lookupDict[target][code];
+  let tiOffset, tjOffset;
+
+  // check if key is in array
+  if (Object.keys(lookupDict).includes(target)) {
+    [tiOffset, tjOffset] = lookupDict[target][code];}
+  else [tiOffset, tjOffset] = lookupDict[gKey][0];
+
   placeTile(i, j, ti + tiOffset, tj + tjOffset); // temp sub 1 so grass is at 0 0
 }
 
@@ -162,9 +237,21 @@ function placeTile(i, j, ti, tj) {
 
 function reseed() {
   seed = (seed | 0) + 1109;
-  randomSeed(seed);
   noiseSeed(seed);
+  randomSeed(seed);
   select("#seedReport").html("seed " + seed);
+
+  {
+    noiseArr = [];
+    for (let i = 0; i < numRows; i++) {
+      let row = [];
+      for (let j = 0; j < numCols; j++) {
+        row.push(floor(noise(j/10, i/10) * 2)); // needs work
+      }
+      noiseArr.push(row);
+    }
+  }
+  
   regenerateGrid();
 }
 
